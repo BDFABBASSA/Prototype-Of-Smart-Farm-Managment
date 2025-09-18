@@ -1,0 +1,17 @@
+# Arduino/ESP32 build files
+*.bin
+*.elf
+*.hex
+*.map
+
+# PlatformIO
+.pio/
+.vscode/
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.tmp
+*.log
