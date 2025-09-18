@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESP32 Smart Farm Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #2d2d2d;
+      margin: 0;
+      padding: 15px;
+      color: #fff;
+    }
+    .dashboard-container {
+      max-width: 1500px;
+      margin: 0 auto;
+    }
+    .main-content {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    .control-panel, .status-panel {
+      background: #3a3a3a;
+      border-radius: 10px;
+      padding: 15px;
+      flex: 1;
+      min-width: 300px;
+    }
+    .panel-title {
+      font-size: 18px;
+      margin-bottom: 15px;
+      color: #fdbb2d;
+      border-bottom: 1px solid #555;
+      padding-bottom: 8px;
+    }
+    .target-display {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      background: #444;
+      padding: 10px;
+      border-radius: 8px;
+    }
+    #targetVal {
+      font-size: 20px;
+      font-weight: bold;
+      color: #fdbb2d;
+    }
+    .slidecontainer {
+      width: 100%;
+      margin: 15px 0;
+    }
+    .slider {
+      width: 100%;
+      height: 10px;
+      border-radius: 5px;
+      background: #555;
+      outline: none;
+    }
+    .slider::-webkit-slider-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fdbb2d;
+      cursor: pointer;
+    }
+    .button-container {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 15px;
+    }
+    button {
+      border: none;
+      border-radius: 8px;
+      padding: 12px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #444;
+      color: white;
+      font-size: 14px;
+    }
+    .button-emoji {
+      font-size: 20px;
+      margin-bottom: 5px;
+    }
+    .carrot { border-top: 3px solid #e67e22; }
+    .broccoli { border-top: 3px solid #27ae60; }
+    .onion { border-top: 3px solid #9b59b6; }
+    .tomato { border-top: 3px solid #e74c3c; }
+    .btn-water { 
+      background: #3498db; 
+      border-top: 3px solid #2980b9; 
+      font-size: 12px;
+      padding: 8px;
+    }
+    .btn-air { 
+      background: #2ecc71; 
+      border-top: 3px solid #27ae60; 
+      font-size: 12px;
+      padding: 8px;
+    }
+    .btn-data { 
+      background: #9b59b6; 
+      border-top: 3px solid #8e44ad; 
+      font-size: 12px;
+      padding: 8px;
+    }
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .status-item {
+      background: #444;
+      padding: 10px;
+      border-radius: 8px;
+    }
+    .status-label {
+      font-size: 12px;
+      color: #aaa;
+      margin-bottom: 5px;
+    }
+    .status-value {
+      font-size: 16px;
+      font-weight: bold;
+    }
+    #tempVal { color: #1abc9c; }
+    #humVal { color: #3498db; }
+    #gasStatus { color: #e74c3c; }
+    .gauges-wrapper {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-top: 15px;
+    }
+    .gauge {
+      text-align: center;
+      background: #444;
+      border-radius: 8px;
+      padding: 10px;
+    }
+    .bar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: conic-gradient(var(--color) var(--angle,0deg), #555 0deg);
+      transform: rotate(180deg);
+      margin: 0 auto 10px;
+    }
+    .value {
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .title {
+      font-size: 12px;
+      color: #aaa;
+    }
+    .gas-alarm {
+      background: #e74c3c;
+      padding: 10px;
+      border-radius: 8px;
+      margin-top: 15px;
+      text-align: center;
+      display: none;
+    }
+    .data-section {
+      margin-top: 20px;
+      background: #3a3a3a;
+      border-radius: 10px;
+      padding: 15px;
+    }
+    .data-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .data-buttons button {
+      flex: 1;
+    }
+  </style>
+</head>
+<body>
+<h1>SMART FARM</h1>
+  <div class="dashboard-container">
+    <div class="main-content">
+      <div class="control-panel">
+        <div class="panel-title">Light Control</div>
+        <div class="target-display">
+          <span>Target Value:</span>
+          <span id="targetVal">500</span>
+        </div>
+        <div class="slidecontainer">
+          <input type="range" min="100" max="1000" value="500" class="slider" id="myRange">
+        </div>
+        <div class="panel-title">Preset Values</div>
+        <div class="button-container">
+          <button class="carrot" onclick="setValue(200)">
+            <span class="button-emoji">🥕</span>
+            <span>Carrot (200)</span>
+          </button>
+          <button class="broccoli" onclick="setValue(400)">
+            <span class="button-emoji">🥦</span>
+            <span>Broccoli (400)</span>
+          </button>
+          <button class="onion" onclick="setValue(700)">
+            <span class="button-emoji">🧅</span>
+            <span>Onion (700)</span>
+          </button>
+          <button class="tomato" onclick="setValue(900)">
+            <span class="button-emoji">🍅</span>
+            <span>Tomato (900)</span>
+          </button>
+          <button class="btn-water">Watering</button>
+          <button class="btn-air">Fresh Air</button>  
+        </div>
+      </div>
+      <div class="status-panel">
+        <div class="panel-title">System Status</div>
+        <div class="status-grid">
+          <div class="status-item">
+            <span class="status-label">Temperature</span>
+            <span id="tempVal" class="status-value">0°C</span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">Humidity</span>
+            <span id="humVal" class="status-value">0%</span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">GAS</span>
+            <span id="gasStatus" class="status-value">Normal</span>
+          </div>
+          <div class="status-item">
+            <span class="status-value">AI SUGGESTION</span>            
+          </div>
+        </div>
+        <div id="gasAlarm" class="gas-alarm">
+          WARNING: HIGH GAS LEVEL DETECTED!
+        </div>
+        <div class="panel-title">Sensor Readings</div>
+        <div class="gauges-wrapper">
+          <div class="gauge">
+            <div class="bar" id="bar1" style="--color:#16a34a"></div>
+            <div class="value" id="val1">0°C</div>
+            <div class="title">Temperature</div>
+          </div>
+
+          <div class="gauge">
+            <div class="bar" id="bar2" style="--color:#0ea5e9"></div>
+            <div class="value" id="val2">0%</div>
+            <div class="title">Humidity</div>
+          </div>
+
+          <div class="gauge">
+            <div class="bar" id="bar3" style="--color:#f97316"></div>
+            <div class="value" id="val3">0 ppm</div>
+            <div class="title">Gas Level</div>
+          </div>
+        </div>
+        
+        <div class="panel-title">Data Logging</div>
+        <div class="data-section">
+          <div class="status-item">
+            <span class="status-label">Data Logging</span>
+            <span id="logStatus" class="status-value">Active</span>
+          </div>
+          <div class="data-buttons">
+            <button class="btn-data" onclick="downloadData()">
+              <span class="button-emoji">📥</span>
+              <span>Download CSV</span>
+            </button>
+            <button class="btn-data" onclick="toggleLogging()">
+              <span class="button-emoji">⏯️</span>
+              <span id="toggleLogText">Pause Logging</span>
+            </button>
+            <button class="btn-data" onclick="deleteData()">
+              <span class="button-emoji">🗑️</span>
+              <span>Clear Data</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    var slider = document.getElementById("myRange");
+    var targetLabel = document.getElementById("targetVal");
+    var loggingEnabled = true;
+    
+    slider.oninput = function() {
+      targetLabel.innerHTML = this.value;
+      fetch("/setTarget?value=" + this.value);
+    }
+    
+    function setValue(val) {
+      slider.value = val;
+      targetLabel.textContent = val;
+      fetch("/setTarget?value=" + val); 
+    }
+    
+    const gauges = [
+      {bar: document.getElementById("bar1"), val: document.getElementById("val1"), max: 50, unit:"°C", value:0, target:0},
+      {bar: document.getElementById("bar2"), val: document.getElementById("val2"), max:100, unit:"%", value:0, target:0},
+      {bar: document.getElementById("bar3"), val: document.getElementById("val3"), max:4096, unit:"ppm", value:0, target:0}
+    ];
+
+    function animate() {
+      gauges.forEach(g => {
+        g.value += (g.target - g.value) * 0.1;
+        const frac = Math.max(0, Math.min(1, g.value/g.max));
+        g.bar.style.setProperty("--angle", (frac*180) + "deg");
+        g.val.textContent = Math.round(g.value) + " " + g.unit;
+      });
+      requestAnimationFrame(animate);
+    }
+    animate();
+
+    function updateDashboard() {
+      fetch("/status").then(r => r.json()).then(data => {
+        // Update status values
+        document.getElementById("tempVal").textContent = data.temperature + "°C";
+        document.getElementById("humVal").textContent = data.humidity + "%";
+        
+        // Update gas status
+        const gasStatus = document.getElementById("gasStatus");
+        const gasAlarm = document.getElementById("gasAlarm");
+        if (data.gas > 2200) {
+          gasStatus.textContent = "DANGEROUS";
+          gasStatus.style.color = "#e74c3c";
+          gasAlarm.style.display = "block";
+        } else if (data.gas > 1500) {
+          gasStatus.textContent = "WARNING";
+          gasStatus.style.color = "#f39c12";
+          gasAlarm.style.display = "none";
+        } else {
+          gasStatus.textContent = "NORMAL";
+          gasStatus.style.color = "#2ecc71";
+          gasAlarm.style.display = "none";
+        }
+        
+        // Update gauges
+        gauges[0].target = data.temperature;
+        gauges[1].target = data.humidity;
+        gauges[2].target = data.gas;
+        
+        // Update logging status
+        document.getElementById("logStatus").textContent = data.logging ? "Active" : "Paused";
+      });
+    }
+    
+    function downloadData() {
+      window.open("/download", "_blank");
+    }
+    
+    function toggleLogging() {
+      fetch("/toggleLogging").then(() => {
+        updateDashboard();
+      });
+    }
+    
+    function deleteData() {
+      if (confirm("Are you sure you want to delete all logged data?")) {
+        fetch("/deleteData").then(() => {
+          alert("Data deleted successfully");
+        });
+      }
+    }
+    
+    // Update dashboard every 2 seconds
+    setInterval(updateDashboard, 2000);
+    updateDashboard(); // Initial update
+  </script>
+</body>
+</html>
